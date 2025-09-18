@@ -1,11 +1,22 @@
 package app.resourceservice.security;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.security.KeyFactory;
+import java.security.interfaces.RSAPublicKey;
+import java.security.spec.X509EncodedKeySpec;
+import java.time.Duration;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.convert.converter.Converter;
+import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
@@ -14,13 +25,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
-
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.security.KeyFactory;
-import java.security.interfaces.RSAPublicKey;
-import java.security.spec.X509EncodedKeySpec;
-import java.util.List;
 
 @Configuration
 @EnableMethodSecurity
@@ -40,19 +44,23 @@ public class SecurityConfig {
   }
 
   @Bean
-  SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-    http.csrf(csrf -> csrf.disable());
-    http.authorizeHttpRequests(
-        auth ->
-            auth.requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/actuator/health")
-                .permitAll()
-                .requestMatchers("/notes/**")
-                .hasAnyRole("USER", "ADMIN")
-                .anyRequest()
-                .authenticated());
-    http.cors(cors -> {});
-    http.oauth2ResourceServer(
-        oauth -> oauth.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter())));
+  SecurityFilterChain filterChain(HttpSecurity http,
+                                  JwtDecoder decoder,
+                                  Converter<Jwt, ? extends AbstractAuthenticationToken> jwtAuthConverter) throws Exception {
+    http
+            .csrf(AbstractHttpConfigurer::disable)
+            .cors(cors -> {})
+            .authorizeHttpRequests(auth -> auth
+                    .requestMatchers("/actuator/health").permitAll()
+                    .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
+                    .anyRequest().authenticated()
+            )
+            .oauth2ResourceServer(oauth -> oauth
+                    .jwt(jwt -> jwt
+                            .decoder(decoder)
+                            .jwtAuthenticationConverter(jwtAuthConverter)
+                    )
+            );
     log.info("Initializing SecurityFilterChain for Resource Service");
     return http.build();
   }
@@ -73,13 +81,17 @@ public class SecurityConfig {
   CorsConfigurationSource corsConfigurationSource() {
     log.info("Setting up CORS configuration to allow all origins and methods for demo purposes");
     CorsConfiguration c = new CorsConfiguration();
-    c.setAllowedOriginPatterns(List.of("*"));
-    c.setAllowedOrigins(List.of("null"));
-    c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
-    c.setAllowedHeaders(List.of("*"));
+    c.setAllowedOriginPatterns(List.of(
+            "http://localhost:*",
+            "https://*.github.io",
+            "https://*.onrender.com"
+    ));
+    c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
+    c.setAllowedHeaders(List.of("Content-Type","Authorization"));
     c.setAllowCredentials(false);
-    UrlBasedCorsConfigurationSource s = new UrlBasedCorsConfigurationSource();
-    s.registerCorsConfiguration("/**", c);
-    return s;
+    c.setMaxAge(Duration.ofHours(1));
+    UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
+    src.registerCorsConfiguration("/**", c);
+    return src;
   }
 }

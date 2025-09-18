@@ -1,8 +1,7 @@
 package app.userservice.user;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-
 import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 // Repository interface for User entities, providing CRUD operations and username-based queries.
 public interface UserRepository extends JpaRepository<User, Long> {

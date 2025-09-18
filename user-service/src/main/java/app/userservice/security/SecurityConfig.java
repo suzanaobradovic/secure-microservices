@@ -1,5 +1,9 @@
 package app.userservice.security;
 
+import static org.springframework.http.HttpMethod.OPTIONS;
+
+import java.time.Duration;
+import java.util.List;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,8 +15,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.List;
-
 @Configuration
 @EnableMethodSecurity
 @Slf4j
@@ -20,13 +22,16 @@ public class SecurityConfig {
 
     @Bean
     SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(csrf -> csrf.disable());
-        http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/actuator/health").permitAll()
-                .anyRequest().authenticated()
-        );
-        http.cors(cors -> {});
         log.info("Initializing SecurityFilterChain for User Service");
+        http
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> {})
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(OPTIONS, "/**").permitAll()
+                        .anyRequest().authenticated()
+                );
         return http.build();
     }
 
@@ -40,13 +45,17 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         log.info("Setting up CORS configuration to allow all origins and methods for demo purposes");
         CorsConfiguration c = new CorsConfiguration();
-        c.setAllowedOriginPatterns(List.of("*"));
-        c.setAllowedOrigins(List.of("null"));
-        c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","OPTIONS"));
-        c.setAllowedHeaders(List.of("*"));
+        c.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "https://*.github.io",
+                "https://*.onrender.com"
+        ));
+        c.setAllowedMethods(List.of("GET","POST","PUT","DELETE","PATCH","OPTIONS"));
+        c.setAllowedHeaders(List.of("Content-Type","Authorization"));
         c.setAllowCredentials(false);
-        UrlBasedCorsConfigurationSource s = new UrlBasedCorsConfigurationSource();
-        s.registerCorsConfiguration("/**", c);
-        return s;
+        c.setMaxAge(Duration.ofHours(1));
+        UrlBasedCorsConfigurationSource src = new UrlBasedCorsConfigurationSource();
+        src.registerCorsConfiguration("/**", c);
+        return src;
     }
 }

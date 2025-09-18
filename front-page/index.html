@@ -86,7 +86,7 @@
 </fieldset>
 
 <script>
-    let jwt = null; // keep token only in memory
+    let jwt = null;
 
     async function register() {
         const base = document.getElementById('userUrl').value;
@@ -107,12 +107,20 @@
             method: 'POST', headers: {'Content-Type': 'application/json'},
             body: JSON.stringify(body)
         });
-        const text = await res.text(); // your login returns raw token string
+        const ct = res.headers.get('content-type') || '';
         if (res.ok) {
-            jwt = text.trim();
-            document.getElementById('jwtBox').textContent = jwt;
+            let tokenStr = '';
+            if (ct.includes('application/json')) {
+                const data = await res.json();
+                tokenStr = data.accessToken || data.token || data.jwt || '';
+            } else {
+                tokenStr = (await res.text()).trim();
+            }
+            jwt = tokenStr;
+            document.getElementById('jwtBox').textContent = jwt || '(empty token)';
         } else {
-            document.getElementById('jwtBox').textContent = `Login failed: ${res.status} ${text}`;
+            const errBody = ct.includes('application/json') ? JSON.stringify(await res.json()) : await res.text();
+            document.getElementById('jwtBox').textContent = `Login failed: ${res.status} ${errBody}`;
         }
     }
 

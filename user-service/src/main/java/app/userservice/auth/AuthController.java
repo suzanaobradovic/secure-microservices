@@ -4,10 +4,10 @@ import app.userservice.security.JwtService;
 import app.userservice.user.User;
 import app.userservice.user.UserRepository;
 import java.util.Set;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
-import lombok.extern.slf4j.Slf4j;
 
 @RestController
 @RequestMapping("/auth")
