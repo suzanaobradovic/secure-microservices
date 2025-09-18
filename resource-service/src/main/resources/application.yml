@@ -10,4 +10,4 @@ management:
 app:
   jwt:
     issuer: "user-service"
-    public-key-path: "jwt-keys/jwt-public.der"
+    public-key-path: ${JWT_PUBLIC_KEY_PATH}

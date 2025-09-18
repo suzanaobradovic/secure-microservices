@@ -21,6 +21,6 @@ management:
 app:
   jwt:
     issuer: "user-service"
-    private-key-path: "jwt-keys/jwt-private.der"
-    public-key-path: "jwt-keys/jwt-public.der"
+    private-key-path: ${JWT_PRIVATE_KEY_PATH}
+    public-key-path: ${JWT_PUBLIC_KEY_PATH}
     expires-in-seconds: 3600
