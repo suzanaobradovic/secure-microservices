@@ -1,0 +1,3 @@
+app:
+  jwt:
+    public-key-path: classpath:keys/test-public.der

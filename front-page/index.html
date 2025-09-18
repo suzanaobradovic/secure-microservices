@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Secure Microservices Demo</title>
+    <meta content="width=device-width, initial-scale=1" name="viewport"/>
+    <style>
+        body {
+            font: 14px/1.4 system-ui, sans-serif;
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 0 1rem;
+        }
+
+        fieldset {
+            margin-bottom: 1rem;
+        }
+
+        input, button, textarea {
+            padding: 6px 10px;
+        }
+
+        .row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        pre {
+            background: #f6f8fa;
+            padding: 10px;
+            overflow: auto;
+        }
+
+        .ok {
+            color: #0a7;
+        }
+
+        .err {
+            color: #c00;
+        }
+    </style>
+</head>
+<body>
+<h1>Secure Microservices Demo</h1>
+
+<fieldset>
+    <legend>Config</legend>
+    <div class="row">
+        <label>User Service URL <input id="userUrl" size="50" value="http://localhost:8081"></label>
+        <label>Resource Service URL <input id="resUrl" size="50" value="http://localhost:8082"></label>
+    </div>
+</fieldset>
+
+<fieldset>
+    <legend>Register</legend>
+    <div class="row">
+        <input id="regUser" placeholder="username">
+        <input id="regPass" placeholder="password" type="password">
+        <button onclick="register()">Register</button>
+    </div>
+    <div id="regMsg"></div>
+</fieldset>
+
+<fieldset>
+    <legend>Login</legend>
+    <div class="row">
+        <input id="loginUser" placeholder="username">
+        <input id="loginPass" placeholder="password" type="password">
+        <button onclick="login()">Login</button>
+    </div>
+    <div>JWT (not persisted):</div>
+    <pre id="jwtBox"></pre>
+</fieldset>
+
+<fieldset>
+    <legend>Notes</legend>
+    <div class="row">
+        <input id="noteTitle" placeholder="title">
+        <input id="noteContent" placeholder="content">
+        <button onclick="createNote()">Create</button>
+        <button onclick="listNotes()">List</button>
+    </div>
+    <pre id="notesBox"></pre>
+</fieldset>
+
+<script>
+    let jwt = null; // keep token only in memory
+
+    async function register() {
+        const base = document.getElementById('userUrl').value;
+        const body = {username: v('regUser'), password: v('regPass')};
+        const res = await fetch(`${base}/auth/register`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        document.getElementById('regMsg').innerHTML =
+            res.ok ? '<span class="ok">Registered</span>' :
+                `<span class="err">Register failed: ${res.status}</span>`;
+    }
+
+    async function login() {
+        const base = document.getElementById('userUrl').value;
+        const body = {username: v('loginUser'), password: v('loginPass')};
+        const res = await fetch(`${base}/auth/login`, {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body)
+        });
+        const text = await res.text(); // your login returns raw token string
+        if (res.ok) {
+            jwt = text.trim();
+            document.getElementById('jwtBox').textContent = jwt;
+        } else {
+            document.getElementById('jwtBox').textContent = `Login failed: ${res.status} ${text}`;
+        }
+    }
+
+    async function createNote() {
+        const base = document.getElementById('resUrl').value;
+        if (!jwt) {
+            alert('Login first');
+            return;
+        }
+        const body = {title: v('noteTitle'), content: v('noteContent')};
+        const res = await fetch(`${base}/notes`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${jwt}`},
+            body: JSON.stringify(body)
+        });
+        document.getElementById('notesBox').textContent =
+            res.ok ? 'Created\n' + JSON.stringify(await res.json(), null, 2)
+                : `Create failed: ${res.status}\n` + (await res.text());
+    }
+
+    async function listNotes() {
+        const base = document.getElementById('resUrl').value;
+        if (!jwt) {
+            alert('Login first');
+            return;
+        }
+        const res = await fetch(`${base}/notes`, {headers: {'Authorization': `Bearer ${jwt}`}});
+        document.getElementById('notesBox').textContent =
+            res.ok ? JSON.stringify(await res.json(), null, 2)
+                : `List failed: ${res.status}\n` + (await res.text());
+    }
+
+    function v(id) {
+        return document.getElementById(id).value;
+    }
+</script>
+</body>
+</html>

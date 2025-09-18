@@ -1,0 +1,13 @@
+server:
+  port: 8082
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+app:
+  jwt:
+    issuer: "user-service"
+    public-key-path: "jwt-keys/jwt-public.der"

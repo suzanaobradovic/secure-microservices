@@ -1,0 +1,43 @@
+### Register a new user
+POST http://localhost:8081/auth/register
+Content-Type: application/json
+
+{
+  "username": "suzana21",
+  "password": "suzana1231"
+}
+
+<> 2025-09-17T182921.400.json
+
+###
+
+### Login and get JWT token
+POST http://localhost:8081/auth/login
+Content-Type: application/json
+
+{
+  "username": "suzana21",
+  "password": "suzana1231"
+}
+
+> {%
+    client.global.set("jwt", response.body)
+%}
+
+###
+
+### List notes (protected)
+GET http://localhost:8082/notes
+Authorization: Bearer {{jwt}}
+
+###
+
+### Create a new note
+POST http://localhost:8082/notes
+Content-Type: application/json
+Authorization: Bearer {{jwt}}
+
+{
+  "title": "My first note",
+  "content": "This is an example note."
+}
