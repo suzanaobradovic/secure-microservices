@@ -21,3 +21,6 @@ Thumbs.db
 *.orig
 *.swp
 *.bak
+
+user-service/mvnw*
+resource-service/mvnw*
